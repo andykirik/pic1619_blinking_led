@@ -12,8 +12,10 @@
  *    RA5 (D4)             LED
  *    RA1 (D5)             LED
  *    RA2 (D6)             LED
- *    R?5 (D7)             LED
+ *    RC5 (D7)             LED
  *
+ *    RC4 (S1)             BUTTON
+ * 
  */
 
 /* The __delay_ms() function is provided by XC8. 
@@ -55,7 +57,7 @@ begins with a single underscore.
 #pragma config WDTCCS   = SWC       // WDT Input Clock Selector->Software control, controlled by WDTCS bits
 
 // INIT
-void system_init()
+void sys_init()
 {
     // ANSELx registers
         ANSELA = 0x00;
@@ -65,7 +67,7 @@ void system_init()
     // TRISx registers (This register specifies the data direction of each pin)
         TRISA 	= 0x00;     // Set All on PORTA as Output
         TRISB 	= 0x00;     // Set All on PORTB as Output
-        TRISC 	= 0x00;     // Set All on PORTC as Output
+        TRISC 	= 0b11011111; // All on PORTC as Output, RC4 as Input
 
     // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
         LATA = 0x00;        // Set PORTA all 0
@@ -85,47 +87,17 @@ void system_init()
 
     // initial state of LEDs (off)
         LATAbits.LATA5 = 0;
-        LATAbits.LATA1 = 0;
-        LATAbits.LATA2 = 0;
-        LATCbits.LATC5 = 0;    
 }
-
-static int mode = 1; // 0 - blink; 1 - rotate
 
 void main(void) 
 {
-    system_init();
+    sys_init();
     
-    if(0 == mode)
+    while(1)
     {
-        // turn on and off
-        while(1)  
-        {
-            LATAbits.LATA5 = ~LATAbits.LATA5;   // flip 
-            LATAbits.LATA1 = ~LATAbits.LATA1;   // flip
-            LATAbits.LATA2 = ~LATAbits.LATA2;   // flip
-            LATCbits.LATC5 = ~LATCbits.LATC5;   // flip
-            __delay_ms(2000);                   // sleep 2 seconds
-        }
+        LATAbits.LATA5 = PORTCbits.RC4 == 0 ? 1 : 0;    //RC4 == 0V (on)
+        __delay_ms(50);                                 // sleep 50 milliseconds
     }
-    else
-    {
-        // rotate
-        int index = 1;
-        while(1)
-        {
-            LATAbits.LATA5 = index & 1;
-            LATAbits.LATA1 = (index & 2) >> 1;
-            LATAbits.LATA2 = (index & 4) >> 2;
-            LATCbits.LATC5 = (index & 8) >> 3;
-
-            index <<= 1;
-            if(index >= 16)
-                index = 1;
-
-            __delay_ms(500);                   // sleep 0.5 second
-        }
-    }
-    
+        
     return;
 }

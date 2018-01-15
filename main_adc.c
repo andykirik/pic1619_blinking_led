@@ -12,7 +12,9 @@
  *    RA5 (D4)             LED
  *    RA1 (D5)             LED
  *    RA2 (D6)             LED
- *    R?5 (D7)             LED
+ *    RC5 (D7)             LED
+ * 
+ *    RC0 (POT1)           POTENCIOMETER
  *
  */
 
@@ -27,6 +29,9 @@ begins with a single underscore.
 #define _XTAL_FREQ 500000
 
 #include <xc.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 
 // CONFIG1
 #pragma config FOSC     = INTOSC    // Oscillator Selection Bits->INTOSC oscillator: I/O function on CLKIN pin
@@ -54,78 +59,107 @@ begins with a single underscore.
 #pragma config WDTCWS   = WDTCWSSW  // WDT Window Select->Software WDT window size control (WDTWS bits)
 #pragma config WDTCCS   = SWC       // WDT Input Clock Selector->Software control, controlled by WDTCS bits
 
+#define LED_D4_LAT                LATAbits.LATA5
+#define LED_D5_LAT                LATAbits.LATA1
+#define LED_D6_LAT                LATAbits.LATA2
+#define LED_D7_LAT                LATCbits.LATC5
+
+#define S1_PORT                   PORTCbits.RC4
+
+#define POT1                      0x4
+#define ACQ_US_DELAY              5
+
 // INIT
-void system_init()
+void sys_init()
 {
-    // ANSELx registers
-        ANSELA = 0x00;
-        ANSELB = 0x00;
-        ANSELC = 0x00;
+    // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
+    LATA = 0x00;        // Set PORTA all 0
+    LATB = 0x00;        // Set PORTB all 0
+    LATC = 0x00;        // Set PORTC all 0
 
     // TRISx registers (This register specifies the data direction of each pin)
-        TRISA 	= 0x00;     // Set All on PORTA as Output
-        TRISB 	= 0x00;     // Set All on PORTB as Output
-        TRISC 	= 0x00;     // Set All on PORTC as Output
+    TRISA 	= 0x00;     // Set All on PORTA as Output
+    TRISB 	= 0x00;     // Set All on PORTB as Output
+    //TRISC 	= 0x00;     // Set All on PORTC as Output
+    TRISC 	= 0b11011111; // All on PORTC as Output, RC4 as Input
 
-    // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
-        LATA = 0x00;        // Set PORTA all 0
-        LATB = 0x00;        // Set PORTB all 0
-        LATC = 0x00;        // Set PORTC all 0
+    /*/ ANSELx registers
+    ANSELA = 0x17; 0b00010111
+    ANSELB = 0xF0; 0b11110000
+    ANSELC = 0xCF; 0b11001111
+    */
 
-    // WPUx registers (pull up resistors)
-        WPUA = 0x3F; 
-        WPUB = 0xF0; 
-        WPUC = 0xFF; 
-        OPTION_REGbits.nWPUEN = 0;
+    /*/ WPUx registers
+    WPUB = 0xF0; 0b11110000
+    WPUA = 0x3F; 0b00111111
+    WPUC = 0xFF; 0b11111111
+    OPTION_REGbits.nWPUEN = 0;
+    */
 
     // ODx registers
-        ODCONA = 0x00;
-        ODCONB = 0x00;
-        ODCONC = 0x00;
-
-    // initial state of LEDs (off)
-        LATAbits.LATA5 = 0;
-        LATAbits.LATA1 = 0;
-        LATAbits.LATA2 = 0;
-        LATCbits.LATC5 = 0;    
+    ODCONA = 0x00;
+    ODCONB = 0x00;
+    ODCONC = 0x00;
+    
+    LATAbits.LATA5 = 0;
+    LATAbits.LATA1 = 0;
+    LATAbits.LATA2 = 0;
+    LATCbits.LATC5 = 0;  
+    
+    // set the ADC to the options selected in the User Interface
+    
+    // GO_nDONE stop; ADON enabled; CHS AN0; 
+    ADCON0 = 0x01;
+    
+    // ADFM left; ADPREF VDD; ADCS FOSC/2; 
+    ADCON1 = 0x00;
+    
+    // TRIGSEL no_auto_trigger; 
+    ADCON2 = 0x00;
+    
+    // ADRESL 0; 
+    ADRESL = 0x00;
+    
+    // ADRESH 0; 
+    ADRESH = 0x00;
 }
 
-static int mode = 1; // 0 - blink; 1 - rotate
+uint16_t ADC_GetConversion(int channel)
+{
+    // select the A/D channel
+    ADCON0bits.CHS = channel;    
+
+    // Turn on the ADC module
+    ADCON0bits.ADON = 1;
+    // Acquisition time delay
+    __delay_us(ACQ_US_DELAY);
+
+    // Start the conversion
+    ADCON0bits.GO_nDONE = 1;
+
+    // Wait for the conversion to finish
+    while (ADCON0bits.GO_nDONE);
+
+    // Conversion finished, return the result
+    return ((uint16_t)((ADRESH << 8) + ADRESL));
+}
 
 void main(void) 
 {
-    system_init();
+    sys_init();
     
-    if(0 == mode)
-    {
-        // turn on and off
-        while(1)  
-        {
-            LATAbits.LATA5 = ~LATAbits.LATA5;   // flip 
-            LATAbits.LATA1 = ~LATAbits.LATA1;   // flip
-            LATAbits.LATA2 = ~LATAbits.LATA2;   // flip
-            LATCbits.LATC5 = ~LATCbits.LATC5;   // flip
-            __delay_ms(2000);                   // sleep 2 seconds
-        }
-    }
-    else
-    {
-        // rotate
-        int index = 1;
-        while(1)
-        {
-            LATAbits.LATA5 = index & 1;
-            LATAbits.LATA1 = (index & 2) >> 1;
-            LATAbits.LATA2 = (index & 4) >> 2;
-            LATCbits.LATC5 = (index & 8) >> 3;
+    uint8_t adcResult;
+    while(1)  
+	{
+        //Get the top 4 MSBs and display it on the LEDs
+        adcResult = ADC_GetConversion(POT1) >> 12;
 
-            index <<= 1;
-            if(index >= 16)
-                index = 1;
-
-            __delay_ms(500);                   // sleep 0.5 second
-        }
+        //Determine which LEDs will light up
+        LED_D4_LAT = adcResult & 1;
+        LED_D5_LAT = (adcResult & 2) >> 1;
+        LED_D6_LAT = (adcResult & 4) >> 2;
+        LED_D7_LAT = (adcResult & 8) >> 3;
     }
-    
+            
     return;
 }
