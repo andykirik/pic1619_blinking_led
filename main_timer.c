@@ -1,10 +1,10 @@
 /*
- * File:   main.c
+ * File:   main_timer.c
  * Author: akirik
  *
  * Created on January 9, 2018, 3:52 PM
  * 
- * Blinking LED
+ * Using timers
  * 
  *  Board connection (Microchip Curiosity Board 8-bit, PIC16F1619):
  *   PIN                	Module                         				  
@@ -14,13 +14,11 @@
  *    RA2 (D6)             LED
  *    RC5 (D7)             LED
  *
- *    RC4 (S1)             BUTTON
- *
  */
 
 /* The __delay_ms() function is provided by XC8. 
 It requires you define _XTAL_FREQ as the frequency of your system clock. 
-We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 4000000. 
+We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 500000. 
 The compiler then uses that value to calculate how many cycles are required to give the requested delay. 
 There is also __delay_us() for microseconds and _delay() to delay for a specific number of clock cycles. 
 Note that __delay_ms() and __delay_us() begin with a double underscore whereas _delay() 
@@ -64,95 +62,71 @@ begins with a single underscore.
 #define LED_D6_LAT                LATAbits.LATA2
 #define LED_D7_LAT                LATCbits.LATC5
 
-#define S1_PORT                   PORTCbits.RC4
-
-volatile uint16_t timer1ReloadVal;
+volatile uint16_t timer1ReloadVal = 0;
 
 // INIT
-void sys_init()
+void system_init()
 {
-    // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
-    LATA = 0x00;        // Set PORTA all 0
-    LATB = 0x00;        // Set PORTB all 0
-    LATC = 0x00;        // Set PORTC all 0
+	// I/O
+		// ANSELx registers
+			ANSELA = 0x00;
+			ANSELB = 0x00;
+			ANSELC = 0x00;
 
-    // TRISx registers (This register specifies the data direction of each pin)
-    TRISA 	= 0x00;     // Set All on PORTA as Output
-    TRISB 	= 0x00;     // Set All on PORTB as Output
-    //TRISC 	= 0x00;     // Set All on PORTC as Output
-    TRISC 	= 0b11011111; // All on PORTC as Output, RC4 as Input
+		// TRISx registers (This register specifies the data direction of each pin)
+			TRISA 	= 0x00;     // Set All on PORTA as Output
+			TRISB 	= 0x00;     // Set All on PORTB as Output
+			TRISC 	= 0x00; 	// Set All on PORTC as Output
 
-    /*/ ANSELx registers
-    ANSELA = 0x17; 0b00010111
-    ANSELB = 0xF0; 0b11110000
-    ANSELC = 0xCF; 0b11001111
-    */
+		// LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
+			LATA = 0x00;        // Set PORTA all 0
+			LATB = 0x00;        // Set PORTB all 0
+			LATC = 0x00;        // Set PORTC all 0
 
-    /*/ WPUx registers
-    WPUB = 0xF0; 0b11110000
-    WPUA = 0x3F; 0b00111111
-    WPUC = 0xFF; 0b11111111
-    OPTION_REGbits.nWPUEN = 0;
-    */
+    // WPUx registers (pull up resistors)
+        WPUA = 0x00; 
+        WPUB = 0x00; 
+        WPUC = 0xFF; 
+        OPTION_REGbits.nWPUEN = 0;
 
     // ODx registers
-    ODCONA = 0x00;
-    ODCONB = 0x00;
-    ODCONC = 0x00;
+        ODCONA = 0x00;
+        ODCONB = 0x00;
+        ODCONC = 0x00;
     
-    LATAbits.LATA5 = 0;
-    LATAbits.LATA1 = 0;
-    LATAbits.LATA2 = 0;
-    LATCbits.LATC5 = 0;
 
-//Set the Timer to the options selected in the GUI
-
-    //T1CKPS 1:1; nT1SYNC synchronize; TMR1CS FOSC/4; TMR1ON off; 
-    T1CON = 0x00;
-
-    //T1GSS T1G_pin; TMR1GE disabled; T1GTM disabled; T1GPOL low; T1GGO_nDONE done; T1GSPM disabled; 
-    T1GCON = 0x00;
-
-    //TMR1H 11; 
-    TMR1H = 0x0B;
-
-    //TMR1L 220; 
-    TMR1L = 0xDC;
-
-    // Load the TMR value to reload variable
-    timer1ReloadVal=(uint16_t)((TMR1H << 8) | TMR1L);
-
-    // Clearing IF flag.
-    PIR1bits.TMR1IF = 0;    
+	// Timer Setup
+		T1CON = 0x00;					// T1CKPS 1:1; nT1SYNC synchronize; TMR1CS FOSC/4; TMR1ON off; 
+		T1GCON = 0x00;					// T1GSS T1G_pin; TMR1GE disabled; T1GTM disabled; T1GPOL low; T1GGO_nDONE done; T1GSPM disabled; 
+		TMR1H = 0x0B;					// TMR1H 11; 
+		TMR1L = 0xDC;					// TMR1L 220; 
+		timer1ReloadVal=(uint16_t)((TMR1H << 8) | TMR1L);// Load the TMR value to reload variable
+		PIR1bits.TMR1IF = 0;        	// Clearing IF flag.
 }
 
 void main(void) 
 {
-    sys_init();
+    system_init();
     
-    // Start the Timer by writing to TMRxON bit
-    T1CONbits.TMR1ON = 1;
+    T1CONbits.TMR1ON = 1;		// Start the Timer by writing to TMRxON bit
     
     while(1)  
 	{
-        //Wait for Timer1 to overflow
-        while (!TMR1IF);
+        while (!TMR1IF); 					//Wait for Timer1 to overflow
         
-        LATAbits.LATA5 = ~LATAbits.LATA5;   // flip 
-        LATAbits.LATA1 = ~LATAbits.LATA1;   // flip
-        LATAbits.LATA2 = ~LATAbits.LATA2;   // flip
-        LATCbits.LATC5 = ~LATCbits.LATC5;   // flip
+        LATAbits.LATA5 = ~LATAbits.LATA5;   // Toggle the LED 
+        LATAbits.LATA1 = ~LATAbits.LATA1;   // Toggle the LED
+        LATAbits.LATA2 = ~LATAbits.LATA2;   // Toggle the LED
+        LATCbits.LATC5 = ~LATCbits.LATC5;   // Toggle the LED        
         
-        //Write to the Timer1 register
-        TMR1H = (timer1ReloadVal >> 8);
+        TMR1H = (timer1ReloadVal >> 8);		// Write to the Timer1 register
         TMR1L = timer1ReloadVal;
         
-        //Clear TMR1 Overflow flag
-        TMR1IF = 0;
+        
+        TMR1IF = 0;							// Clear TMR1 Overflow flag
     }   
 
-    // Stop the Timer by writing to TMRxON bit
-    T1CONbits.TMR1ON = 0;
+    T1CONbits.TMR1ON = 0; // Stop the Timer by writing to TMRxON bit (no need to do it, just to show that timer could be turned off)
     
     return;
 }

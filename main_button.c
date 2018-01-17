@@ -1,10 +1,11 @@
 /*
- * File:   main.c
+ * File:   main_button.c
  * Author: akirik
  *
  * Created on January 9, 2018, 3:52 PM
  * 
- * Blinking LED
+ * Switch and a LED
+ * Digital I/O
  * 
  *  Board connection (Microchip Curiosity Board 8-bit, PIC16F1619):
  *   PIN                	Module                         				  
@@ -20,7 +21,7 @@
 
 /* The __delay_ms() function is provided by XC8. 
 It requires you define _XTAL_FREQ as the frequency of your system clock. 
-We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 4000000. 
+We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 500000. 
 The compiler then uses that value to calculate how many cycles are required to give the requested delay. 
 There is also __delay_us() for microseconds and _delay() to delay for a specific number of clock cycles. 
 Note that __delay_ms() and __delay_us() begin with a double underscore whereas _delay() 
@@ -59,7 +60,11 @@ begins with a single underscore.
 // INIT
 void sys_init()
 {
+	// To control Digital I/O use three registers: ANSEL, TRIS and PORT:
+
     // ANSELx registers
+	// ANSEL and ANSELH control the mode of AN0 through AN11:
+	// 0 sets the pin to digital mode and 1 sets the pin to analog mode.
         ANSELA = 0x00;
         ANSELB = 0x00;
         ANSELC = 0x00;
@@ -75,8 +80,8 @@ void sys_init()
         LATC = 0x00;        // Set PORTC all 0
 
     // WPUx registers (pull up resistors)
-        WPUA = 0x3F; 
-        WPUB = 0xF0; 
+        WPUA = 0x00; 
+        WPUB = 0x00; 
         WPUC = 0xFF; 
         OPTION_REGbits.nWPUEN = 0;
 
@@ -85,7 +90,7 @@ void sys_init()
         ODCONB = 0x00;
         ODCONC = 0x00;
 
-    // initial state of LEDs (off)
+    // initial state of LED - OFF (redundant, just to show another method to set)
         LATAbits.LATA5 = 0;
 }
 
@@ -95,8 +100,17 @@ void main(void)
     
     while(1)
     {
-        LATAbits.LATA5 = PORTCbits.RC4 == 0 ? 1 : 0;    //RC4 == 0V (on)
-        __delay_ms(50);                                 // sleep 50 milliseconds
+        LATAbits.LATA5 = PORTCbits.RC4 == 0 ? 1 : 0;    // RC4 == 0V (on)
+        __delay_ms(50);                                 // Sleep 50 milliseconds
+		
+		/*if (0 == RC4) {                       		// Switch is normally open to 5V ...when pressed, RA3 is connected to GND
+            __delay_ms(10);                     		// Debounce by delaying and checking if switch is still pressed
+            if (0 == RC4)                       		// Сheck if still down
+                LATAbits.LATA5 = 1;                           
+        }
+        else
+            LATAbits.LATA5 = 0;
+        */
     }
         
     return;

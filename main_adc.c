@@ -1,10 +1,10 @@
 /*
- * File:   main.c
+ * File:   main_adc.c
  * Author: akirik
  *
  * Created on January 9, 2018, 3:52 PM
  * 
- * Blinking LED
+ * Analog to Digital Converter (ADC)
  * 
  *  Board connection (Microchip Curiosity Board 8-bit, PIC16F1619):
  *   PIN                	Module                         				  
@@ -20,7 +20,7 @@
 
 /* The __delay_ms() function is provided by XC8. 
 It requires you define _XTAL_FREQ as the frequency of your system clock. 
-We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 4000000. 
+We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 500000. 
 The compiler then uses that value to calculate how many cycles are required to give the requested delay. 
 There is also __delay_us() for microseconds and _delay() to delay for a specific number of clock cycles. 
 Note that __delay_ms() and __delay_us() begin with a double underscore whereas _delay() 
@@ -68,89 +68,61 @@ begins with a single underscore.
 #define ACQ_US_DELAY              5
 
 // INIT
-void sys_init()
+void system_init()
 {
-    // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
-    LATA = 0x00;        // Set PORTA all 0
-    LATB = 0x00;        // Set PORTB all 0
-    LATC = 0x00;        // Set PORTC all 0
+	// I/O
+		// ANSELx registers
+			ANSELA = 0x00;
+			ANSELB = 0x00;
+			ANSELC = 0x00;
+			
+		// TRISx registers (This register specifies the data direction of each pin)
+			TRISA 	= 0x00;     // Set All on PORTA as Output
+			TRISB 	= 0x00;     // Set All on PORTB as Output
+			TRISC 	= 0b11011111; // All on PORTC as Output, RC4 as Input
 
-    // TRISx registers (This register specifies the data direction of each pin)
-    TRISA 	= 0x00;     // Set All on PORTA as Output
-    TRISB 	= 0x00;     // Set All on PORTB as Output
-    //TRISC 	= 0x00;     // Set All on PORTC as Output
-    TRISC 	= 0b11011111; // All on PORTC as Output, RC4 as Input
+		// LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
+			LATA = 0x00;        // Set PORTA all 0
+			LATB = 0x00;        // Set PORTB all 0
+			LATC = 0x00;        // Set PORTC all 0
 
-    /*/ ANSELx registers
-    ANSELA = 0x17; 0b00010111
-    ANSELB = 0xF0; 0b11110000
-    ANSELC = 0xCF; 0b11001111
-    */
-
-    /*/ WPUx registers
-    WPUB = 0xF0; 0b11110000
-    WPUA = 0x3F; 0b00111111
-    WPUC = 0xFF; 0b11111111
-    OPTION_REGbits.nWPUEN = 0;
-    */
+    // WPUx registers (pull up resistors)
+        WPUA = 0x00; 
+        WPUB = 0x00; 
+        WPUC = 0x00; 
+        OPTION_REGbits.nWPUEN = 0;
 
     // ODx registers
-    ODCONA = 0x00;
-    ODCONB = 0x00;
-    ODCONC = 0x00;
+		ODCONA = 0x00;
+		ODCONB = 0x00;
+		ODCONC = 0x00;
     
-    LATAbits.LATA5 = 0;
-    LATAbits.LATA1 = 0;
-    LATAbits.LATA2 = 0;
-    LATCbits.LATC5 = 0;  
-    
-    // set the ADC to the options selected in the User Interface
-    
-    // GO_nDONE stop; ADON enabled; CHS AN0; 
-    ADCON0 = 0x01;
-    
-    // ADFM left; ADPREF VDD; ADCS FOSC/2; 
-    ADCON1 = 0x00;
-    
-    // TRIGSEL no_auto_trigger; 
-    ADCON2 = 0x00;
-    
-    // ADRESL 0; 
-    ADRESL = 0x00;
-    
-    // ADRESH 0; 
-    ADRESH = 0x00;
+  
+    // ADC setup
+		ADCON0 = 0x01;		// GO_nDONE stop; ADON enabled; CHS AN0; 
+        ADCON1 = 0x00;    	// ADFM left; ADPREF VDD; ADCS FOSC/2; 
+		ADCON2 = 0x00;		// TRIGSEL no_auto_trigger; 
+        ADRESL = 0x00;    	// ADRESL 0; 
+        ADRESH = 0x00;    	// ADRESH 0; 
 }
 
 uint16_t ADC_GetConversion(int channel)
-{
-    // select the A/D channel
-    ADCON0bits.CHS = channel;    
-
-    // Turn on the ADC module
-    ADCON0bits.ADON = 1;
-    // Acquisition time delay
-    __delay_us(ACQ_US_DELAY);
-
-    // Start the conversion
-    ADCON0bits.GO_nDONE = 1;
-
-    // Wait for the conversion to finish
-    while (ADCON0bits.GO_nDONE);
-
-    // Conversion finished, return the result
-    return ((uint16_t)((ADRESH << 8) + ADRESL));
+{    
+    ADCON0bits.CHS = channel;					// Select the A/D channel
+    ADCON0bits.ADON = 1;						// Turn on the ADC module
+    __delay_us(ACQ_US_DELAY);					// Acquisition time delay
+    ADCON0bits.GO_nDONE = 1;					// Start the conversion
+    while (ADCON0bits.GO_nDONE);				// Wait for the conversion to finish
+    return ((uint16_t)((ADRESH << 8) + ADRESL));// Conversion finished, return the result
 }
 
 void main(void) 
 {
-    sys_init();
+    system_init();
     
-    uint8_t adcResult;
     while(1)  
 	{
-        //Get the top 4 MSBs and display it on the LEDs
-        adcResult = ADC_GetConversion(POT1) >> 12;
+        uint8_t adcResult = ADC_GetConversion(POT1) >> 12; // Get the top 4 MSBs and display it on the LEDs
 
         //Determine which LEDs will light up
         LED_D4_LAT = adcResult & 1;
