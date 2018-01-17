@@ -64,8 +64,6 @@ begins with a single underscore.
 #define LED_D6_LAT                LATAbits.LATA2
 #define LED_D7_LAT                LATCbits.LATC5
 
-#define S1_PORT                   PORTCbits.RC4
-
 #define POT1                      0x4
 #define ACQ_US_DELAY              5
 
