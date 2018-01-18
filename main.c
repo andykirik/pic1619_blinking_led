@@ -18,7 +18,7 @@
 
 /* The __delay_ms() function is provided by XC8. 
 It requires you define _XTAL_FREQ as the frequency of your system clock. 
-We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 4000000. 
+We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 500000. 
 The compiler then uses that value to calculate how many cycles are required to give the requested delay. 
 There is also __delay_us() for microseconds and _delay() to delay for a specific number of clock cycles. 
 Note that __delay_ms() and __delay_us() begin with a double underscore whereas _delay() 
@@ -57,12 +57,18 @@ begins with a single underscore.
 // INIT
 void system_init()
 {
+	// To control Digital I/O use three registers: ANSEL, TRIS and LAT:
+	
     // ANSELx registers
+	// ANSEL and ANSELH control the mode of AN0 through AN11:
+	// 0 sets the pin to digital mode and 1 sets the pin to analog mode.
         ANSELA = 0x00;
         ANSELB = 0x00;
         ANSELC = 0x00;
 
-    // TRISx registers (This register specifies the data direction of each pin)
+    // TRISx registers
+	// This register specifies the data direction of each pin:
+	// O - output, 1 - input
         TRISA 	= 0x00;     // Set All on PORTA as Output
         TRISB 	= 0x00;     // Set All on PORTB as Output
         TRISC 	= 0x00;     // Set All on PORTC as Output
@@ -73,9 +79,9 @@ void system_init()
         LATC = 0x00;        // Set PORTC all 0
 
     // WPUx registers (pull up resistors)
-        WPUA = 0x3F; 
-        WPUB = 0xF0; 
-        WPUC = 0xFF; 
+        WPUA = 0x00; 
+        WPUB = 0x00; 
+        WPUC = 0x00; 
         OPTION_REGbits.nWPUEN = 0;
 
     // ODx registers
@@ -83,14 +89,14 @@ void system_init()
         ODCONB = 0x00;
         ODCONC = 0x00;
 
-    // initial state of LEDs (off)
+    // initial state of LEDs - OFF (redundant, just to show another method to set)
         LATAbits.LATA5 = 0;
         LATAbits.LATA1 = 0;
         LATAbits.LATA2 = 0;
         LATCbits.LATC5 = 0;    
 }
 
-static int mode = 1; // 0 - blink; 1 - rotate
+static int mode = 1; // 0 - blink; 1 - rotate (need to be recompiled to change modes)
 
 void main(void) 
 {
@@ -101,10 +107,10 @@ void main(void)
         // turn on and off
         while(1)  
         {
-            LATAbits.LATA5 = ~LATAbits.LATA5;   // flip 
-            LATAbits.LATA1 = ~LATAbits.LATA1;   // flip
-            LATAbits.LATA2 = ~LATAbits.LATA2;   // flip
-            LATCbits.LATC5 = ~LATCbits.LATC5;   // flip
+            LATAbits.LATA5 = ~LATAbits.LATA5;   // Toggle the LED 
+            LATAbits.LATA1 = ~LATAbits.LATA1;   // Toggle the LED
+            LATAbits.LATA2 = ~LATAbits.LATA2;   // Toggle the LED
+            LATCbits.LATC5 = ~LATCbits.LATC5;   // Toggle the LED
             __delay_ms(2000);                   // sleep 2 seconds
         }
     }
