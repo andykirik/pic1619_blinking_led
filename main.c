@@ -62,6 +62,22 @@ void system_init()
     // ANSELx registers
 	// ANSEL and ANSELH control the mode of AN0 through AN11:
 	// 0 sets the pin to digital mode and 1 sets the pin to analog mode.
+    /* 
+	 * -------------------ANSELA-------------------------------
+     * Bit#:  ---7---6---5----4----3----2-----1-----0----------
+     * ANS:   -|---|---|---|ANSA4|---|ANSA2|ANSA1|ANSA0|-------
+     * --------------------------------------------------------
+     * PORTA3 is Input only
+     * 
+	 * -------------------ANSELB-------------------------------
+     * Bit#:  ----7---6----5-----4----3---2---1----0-----------
+     * ANS:   --|---|---|ANSB5|ANSB4|---|---|---|---|----------
+     * --------------------------------------------------------
+     * -------------------ANSELC-------------------------------
+     * Bit#:  ----7------6----5---4----3-----2----1-----0------
+     * ANS:   --|ANSC7|ANSC6|---|---|ANSC3|ANSC2|ANSC1|ANSC0|--
+     * --------------------------------------------------------
+     */
         ANSELA = 0x00;
         ANSELB = 0x00;
         ANSELC = 0x00;
@@ -69,11 +85,27 @@ void system_init()
     // TRISx registers
 	// This register specifies the data direction of each pin:
 	// O - output, 1 - input
+    /* 
+	 * -------------------TRISA---------------------------------------------
+     * Bit#:   ---7-------6------5------4------3------2------1------0-------
+     * TRIS:   -|------|------|TRISA5|TRISA4|------|TRISA2|TRISA1|TRISA0|---
+     * ---------------------------------------------------------------------
+     * PORTA3 is Input only
+     * 
+	 * -------------------TRISB---------------------------------------------
+     * Bit#:   ----7------6------5------4------3------2------1------0-------
+     * TRIS:   -|TRISB7|TRISB6|TRISB5|TRISB4|------|------|------|------|---
+     * ---------------------------------------------------------------------
+     * -------------------TRISC---------------------------------------------
+     * Bit#:   ----7------6------5------4------3------2------1------0-------
+     * TRIS:   --|TRISC7|TRISC6|TRISC5|TRISC4|TRISC3|TRISC2|TRISC1|TRISC0|--
+     * ---------------------------------------------------------------------
+     */
         TRISA 	= 0x00;     // Set All on PORTA as Output
         TRISB 	= 0x00;     // Set All on PORTB as Output
         TRISC 	= 0x00;     // Set All on PORTC as Output
 
-    // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
+    // LATx registers (output latch - used instead of PORTx registers to write (read could be done on PORTx))
         LATA = 0x00;        // Set PORTA all 0
         LATB = 0x00;        // Set PORTB all 0
         LATC = 0x00;        // Set PORTC all 0
@@ -84,7 +116,7 @@ void system_init()
         WPUC = 0x00; 
         OPTION_REGbits.nWPUEN = 0;
 
-    // ODx registers
+    // ODCONx registers (open-drain)
         ODCONA = 0x00;
         ODCONB = 0x00;
         ODCONC = 0x00;
