@@ -106,7 +106,7 @@ void system_init()
      */
         TRISA 	= 0x00;     // Set All on PORTA as Output
         TRISB 	= 0x00;     // Set All on PORTB as Output
-        TRISC 	= 0b11011111; // All on PORTC as Output, RC4 as Input
+        TRISC 	= 0b00010000; // All on PORTC as Output, RC4 as Input
 
     // LATx registers 
     // output latch - used instead of PORTx registers to write (read could be done on PORTx)
