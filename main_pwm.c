@@ -151,6 +151,10 @@ void main(void)
     
     while(1)  
 	{
+        //uint8_t adcResult = ADC_GetConversion(POT1);		//Start ADC conversion        
+        //CCPR1H = adcResult >> 8;
+        //CCPR1L = adcResult;
+        
         uint8_t adcResult = ADC_GetConversion(POT1) >> 6;		//Start ADC conversion
         adcResult &= 0x03FF;
     
