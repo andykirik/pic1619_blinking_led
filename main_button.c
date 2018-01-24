@@ -29,8 +29,6 @@ begins with a single underscore.
 */
 #define _XTAL_FREQ 500000
 
-#include <xc.h>
-
 // CONFIG1
 #pragma config FOSC     = INTOSC    // Oscillator Selection Bits->INTOSC oscillator: I/O function on CLKIN pin
 #pragma config PWRTE    = OFF       // Power-up Timer Enable->PWRT disabled
@@ -56,6 +54,8 @@ begins with a single underscore.
 #pragma config WDTE     = OFF       // Watchdog Timer Enable->WDT disabled
 #pragma config WDTCWS   = WDTCWSSW  // WDT Window Select->Software WDT window size control (WDTWS bits)
 #pragma config WDTCCS   = SWC       // WDT Input Clock Selector->Software control, controlled by WDTCS bits
+
+#include <xc.h>
 
 // INIT
 void system_init()
