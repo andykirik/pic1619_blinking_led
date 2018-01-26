@@ -26,8 +26,6 @@ begins with a single underscore.
 */
 #define _XTAL_FREQ 500000
 
-#include <xc.h>
-
 // CONFIG1
 #pragma config FOSC     = INTOSC    // Oscillator Selection Bits->INTOSC oscillator: I/O function on CLKIN pin
 #pragma config PWRTE    = OFF       // Power-up Timer Enable->PWRT disabled
@@ -54,6 +52,8 @@ begins with a single underscore.
 #pragma config WDTCWS   = WDTCWSSW  // WDT Window Select->Software WDT window size control (WDTWS bits)
 #pragma config WDTCCS   = SWC       // WDT Input Clock Selector->Software control, controlled by WDTCS bits
 
+#include <xc.h>
+
 // INIT
 void system_init()
 {
@@ -62,6 +62,22 @@ void system_init()
     // ANSELx registers
 	// ANSEL and ANSELH control the mode of AN0 through AN11:
 	// 0 sets the pin to digital mode and 1 sets the pin to analog mode.
+    /* 
+	 * -------------------ANSELA-------------------------------
+     * Bit#:  ---7---6---5----4----3----2-----1-----0----------
+     * ANS:   -|---|---|---|ANSA4|---|ANSA2|ANSA1|ANSA0|-------
+     * --------------------------------------------------------
+     * PORTA3 is Input only
+     * 
+	 * -------------------ANSELB-------------------------------
+     * Bit#:  ----7---6----5-----4----3---2---1----0-----------
+     * ANS:   --|---|---|ANSB5|ANSB4|---|---|---|---|----------
+     * --------------------------------------------------------
+     * -------------------ANSELC-------------------------------
+     * Bit#:  ----7------6----5---4----3-----2----1-----0------
+     * ANS:   --|ANSC7|ANSC6|---|---|ANSC3|ANSC2|ANSC1|ANSC0|--
+     * --------------------------------------------------------
+     */
         ANSELA = 0x00;
         ANSELB = 0x00;
         ANSELC = 0x00;
@@ -69,22 +85,83 @@ void system_init()
     // TRISx registers
 	// This register specifies the data direction of each pin:
 	// O - output, 1 - input
+    /* 
+	 * -------------------TRISA---------------------------------------------
+     * Bit#:   ---7-------6------5------4------3------2------1------0-------
+     * TRIS:   -|------|------|TRISA5|TRISA4|------|TRISA2|TRISA1|TRISA0|---
+     * ---------------------------------------------------------------------
+     * PORTA3 is Input only
+     * 
+	 * -------------------TRISB---------------------------------------------
+     * Bit#:   ----7------6------5------4------3------2------1------0-------
+     * TRIS:   -|TRISB7|TRISB6|TRISB5|TRISB4|------|------|------|------|---
+     * ---------------------------------------------------------------------
+     * -------------------TRISC---------------------------------------------
+     * Bit#:   ----7------6------5------4------3------2------1------0-------
+     * TRIS:   --|TRISC7|TRISC6|TRISC5|TRISC4|TRISC3|TRISC2|TRISC1|TRISC0|--
+     * ---------------------------------------------------------------------
+     */
         TRISA 	= 0x00;     // Set All on PORTA as Output
         TRISB 	= 0x00;     // Set All on PORTB as Output
         TRISC 	= 0x00;     // Set All on PORTC as Output
 
-    // LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
+    // LATx registers 
+    // output latch - used instead of PORTx registers to write (read could be done on PORTx)
+    /* 
+	 * -------------------LATA--------------------------------------
+     * Bit#:   ---7-----6-----5-----4-----3-----2-----1-----0-------
+     * LAT:   -|-----|-----|LATA5|LATA4|LATA3|LATA2|LATA1|LATA0|----
+     * -------------------------------------------------------------
+	 * -------------------LATB--------------------------------------
+     * Bit#:   ----7----6----5-----4------3------2------1------0----
+     * LAT:   -|LATB7|LATB6|LATB5|LATB4|------|------|------|------|
+     * -------------------------------------------------------------
+     * -------------------LATC--------------------------------------
+     * Bit#:   ----7-----6-----5-----4-----3-----2-----1-----0------
+     * LAT:   --|LATC7|LATC6|LATC5|LATC4|LATC3|LATC2|LATC1|LATC0|---
+     * -------------------------------------------------------------
+     */
         LATA = 0x00;        // Set PORTA all 0
         LATB = 0x00;        // Set PORTB all 0
         LATC = 0x00;        // Set PORTC all 0
 
     // WPUx registers (pull up resistors)
+    /* 
+	 * -------------------WPUA--------------------------------------
+     * Bit#:   ---7-----6-----5-----4-----3-----2-----1-----0-------
+     * WPU:   -|-----|-----|WPUA5|WPUA4|WPUA3|WPUA2|WPUA1|WPUA0|----
+     * -------------------------------------------------------------
+	 * -------------------WPUB--------------------------------------
+     * Bit#:  ----7----6----5-----4------3------2-------1------0----
+     * WPU:   -|WPUB7|WPUB6|WPUB5|WPUB4|------|------|------|------|
+     * -------------------------------------------------------------
+     * -------------------WPUC--------------------------------------
+     * Bit#:   ----7-----6-----5-----4-----3-----2-----1-----0------
+     * WPU:   --|WPUC7|WPUC6|WPUC5|WPUC4|WPUC3|WPUC2|WPUC1|WPUC0|---
+     * -------------------------------------------------------------
+     */
         WPUA = 0x00; 
         WPUB = 0x00; 
         WPUC = 0x00; 
         OPTION_REGbits.nWPUEN = 0;
 
-    // ODx registers
+    // ODCONx registers (open-drain)
+    /* 
+	 * -------------------ODCONA----------------------------------
+     * Bit#: ---7------6-----5----4-----3-----2-----1-----0-------
+     * OD:   -|-----|-----|ODA5|ODUA4|-----|ODUA2|ODUA1|ODUA0|----
+     * -----------------------------------------------------------
+     * PORTA3 is Input only
+     * 
+	 * -------------------ODCONAB----------------------------
+     * Bit#: ----7----6----5----4-----3----2-----1-----0-----
+     * OD:   -|ODB7|ODB6|ODB5|ODB4|-----|-----|-----|-----|--
+     * ------------------------------------------------------
+     * -------------------ODCONAC----------------------------
+     * Bit#: ----7----6----5----4----3----2----1-----0-------
+     * OD:   --|ODC7|ODC6|ODC5|ODC4|ODC3|ODC2|ODC1|ODC0|-----
+     * ------------------------------------------------------
+     */
         ODCONA = 0x00;
         ODCONB = 0x00;
         ODCONC = 0x00;
