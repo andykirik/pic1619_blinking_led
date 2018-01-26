@@ -20,7 +20,7 @@
 
 /* The __delay_ms() function is provided by XC8. 
 It requires you define _XTAL_FREQ as the frequency of your system clock. 
-We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 4000000. 
+We are using the internal oscillator at its default 500 kHz, so _XTAL_FREQ is defined as 500000. 
 The compiler then uses that value to calculate how many cycles are required to give the requested delay. 
 There is also __delay_us() for microseconds and _delay() to delay for a specific number of clock cycles. 
 Note that __delay_ms() and __delay_us() begin with a double underscore whereas _delay() 
