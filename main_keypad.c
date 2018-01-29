@@ -47,8 +47,10 @@
  *           Vss
  * 
  *  keypad could be connected with Pull Up resistor or with Pull Down ones
- *  in this example we connect Pull Down to the ground
- *  if Pull Down are used then logic should be reversed
+ *  in this example we connect pins 1-4 to the microcontroller and
+ *  with Pull Down resistors to the ground (Vss)
+ * 
+ *  If Pull Down resistors are used (to connect to Vdd) then logic should be reversed
  * 
  *          
  * =============================================================================
