@@ -22,35 +22,35 @@
  *                     segment LDP (-)
  *                     cathode     (pins 4, 12)
  * 
- *    A0                C4 (1)
- *    A1                C3 (2)
- *    A2                C2 (3)
- *    A4                C1 (4)
- *    B4                R4 (5)
- *    B5                R3 (6)
- *    B6                R2 (7)
- *    B7                R1 (8)
+ *    RA0              C4 (pin 1)
+ *    RA1              C3 (pin 2)
+ *    RA2              C2 (pin 3)
+ *    RA4              C1 (pin 4)
+ *    RB4              R4 (pin 5)
+ *    RB5              R3 (pin 6)
+ *    RB6              R2 (pin 7)
+ *    RB7              R1 (pin 8)
  * 
  * 
  * =============================================================================
  * 4x4 Universal 16 Key Keypad For Arduino
+ * PIC16F1619:
+ *      A0  A1  A2  A4  B4  B5  B6  B7
  * keypad pins:
  *      1   2   3   4   5   6   7   8
  * rows/columns:
  *      C4  C3  C2  C1  R4  R3  R2  R1
- * PIC16F1619:
- *      A0  A1  A2  A4  B4  B5  B6  B7
  *      --  --  --  --
  *      | PULL DOWN  |
  *        resistors
  *            |
  *           Vss
  * 
- *  keypad could be connected with Pull Up resistor or with Pull Down ones
+ *  keypad could be connected with Pull Up resistor or with Pull Down resistor
  *  in this example we connect pins 1-4 to the microcontroller and
  *  with Pull Down resistors to the ground (Vss)
  * 
- *  If Pull Down resistors are used (to connect to Vdd) then logic should be reversed
+ *  If Pull Up resistors are used (to connect to Vdd) then logic should be reversed
  * 
  *          
  * =============================================================================
