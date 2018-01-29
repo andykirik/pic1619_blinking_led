@@ -12,7 +12,7 @@
  *    RA5 (D4)             LED
  *    RA1 (D5)             LED
  *    RA2 (D6)             LED
- *    R?5 (D7)             LED
+ *    RA5 (D7)             LED
  *
  */
 
