@@ -154,21 +154,11 @@ void main(void)
         //CCPR1H = adcResult >> 8;
         //CCPR1L = adcResult;
         
-        uint8_t adcResult = ADC_GetConversion(POT1) >> 6;		//Start ADC conversion
-        adcResult &= 0x03FF;
+        uint16_t adcResult = ADC_GetConversion(POT1);		//Start ADC conversion
     
         // Load duty cycle value
-        if(CCP1CONbits.FMT)
-        {
-            adcResult <<= 6;
-            CCPR1H = adcResult >> 8;
-            CCPR1L = adcResult;
-        }
-        else
-        {
-            CCPR1H = adcResult >> 8;
-            CCPR1L = adcResult;
-        }
+        CCPR1H = adcResult & 0b11;
+        CCPR1L = adcResult >> 2;
     }
         
     T2CONbits.TMR2ON = 0;	// Stop the Timer by writing to TMRxON bit (no need to do it, just to show that timer could be turned off)
