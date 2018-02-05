@@ -65,109 +65,87 @@ begins with a single underscore.
 #include <xc.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "lcd.h"
 
-//LCD Functions Developed by electroSome
-
-
-void Lcd_Port(char a)
+void LCDSetData(char x)
 {
-	D4 = a & 1 ? 1 : 0;
-	D5 = a & 2 ? 1 : 0;
-	D6 = a & 4 ? 1 : 0;
-	D7 = a & 8 ? 1 : 0;
+    D4 = x & 1 ? 1 : 0;
+	D5 = x & 2 ? 1 : 0;
+	D6 = x & 4 ? 1 : 0;
+	D7 = x & 8 ? 1 : 0;
 }
 
-void Lcd_Cmd(char CMD)
+void LCDSendCommand(char cmd)
 {
-	Lcd_Port(CMD);
+	LCDSetData(cmd);
 	RS = 0;              
-	EN  = 1;             
+	EN = 1;             
     __delay_ms(4);
-    EN  = 0;             
+    EN = 0;             
 }
 
-Lcd_Clear()
+void LCDSendData(char n)
 {
-	Lcd_Cmd(0);
-	Lcd_Cmd(1);
+   char firstNibble = n & 0xF0;
+   char secondNibble = n & 0x0F;
+   RS = 1;             
+   LCDSetData(firstNibble >> 4); 
+   EN = 1;
+   __delay_us(40);
+   EN = 0;
+   LCDSetData(secondNibble);
+   EN = 1;
+   __delay_us(40);
+   EN = 0;
 }
 
-void Lcd_Set_Cursor(char a, char b)
+void LCDInitialize()
 {
-	char temp,z,y;
-	if(a == 1)
-	{
-	  temp = 0x80 + b - 1;
-		z = temp >> 4;
-		y = temp & 0x0F;
-		Lcd_Cmd(z);
-		Lcd_Cmd(y);
-	}
-	else if(a == 2)
-	{
-		temp = 0xC0 + b - 1;
-		z = temp >> 4;
-		y = temp & 0x0F;
-		Lcd_Cmd(z);
-		Lcd_Cmd(y);
-	}
-}
-
-void Lcd_Init()
-{
-  Lcd_Port(0x00);
-   __delay_ms(20);
-  Lcd_Cmd(0x02);
-	__delay_ms(5);
-  Lcd_Cmd(0x02);
+    LCDSetData(0x00);
+    __delay_ms(20);
+    LCDSendCommand(0x02);
+    __delay_ms(5);
+    LCDSendCommand(0x02);//NOTE this is not copy/paste error, we have to do it three times
 	__delay_ms(11);
-  Lcd_Cmd(0x02);
-  /////////////////////////////////////////////////////
-  Lcd_Cmd(0x02);
-  Lcd_Cmd(0x02);
-  Lcd_Cmd(0x08);
-  Lcd_Cmd(0x00);
-  Lcd_Cmd(0x0C);
-  Lcd_Cmd(0x00);
-  Lcd_Cmd(0x06);
+    LCDSendCommand(0x02);//NOTE this is not copy/paste error, we have to do it three times
+  
+    LCDSendCommand(0x08);
+    LCDSendCommand(0x00);
+    LCDSendCommand(0x0C);
+    LCDSendCommand(0x00);
+    LCDSendCommand(0x06);
 }
 
-void Lcd_Write_Char(char a)
+LCDCleanScreen()
 {
-   char temp,y;
-   temp = a&0x0F;
-   y = a&0xF0;
-   RS = 1;             // => RS = 1
-   Lcd_Port(y>>4);             //Data transfer
-   EN = 1;
-   __delay_us(40);
-   EN = 0;
-   Lcd_Port(temp);
-   EN = 1;
-   __delay_us(40);
-   EN = 0;
+	LCDSendCommand(0x00);
+	LCDSendCommand(0x01);
 }
 
-void Lcd_Write_String(char *a)
+void LCDSetCursor(char row, char column)
 {
-	int i;
-	for(i=0;a[i]!='\0';i++)
-	   Lcd_Write_Char(a[i]);
+    char offset = 1 == row ? 0x80 : 0xC0;
+    char temp = offset + column - 1;
+	LCDSendCommand(temp >> 4);
+	LCDSendCommand(temp & 0x0F);
 }
 
-void Lcd_Shift_Right()
+void LCDPrint(char *pstr)
 {
-	Lcd_Cmd(0x01);
-	Lcd_Cmd(0x0C);
+	for(; pstr; ++pstr)
+	   LCDSendData(*pstr);
 }
 
-void Lcd_Shift_Left()
+void LCDShiftRight()
 {
-	Lcd_Cmd(0x01);
-	Lcd_Cmd(0x08);
+	LCDSendCommand(0x01);
+	LCDSendCommand(0x0C);
 }
 
+void LCDShiftLeft()
+{
+	LCDSendCommand(0x01);
+	LCDSendCommand(0x08);
+}
 
 // INIT
 void system_init()
@@ -200,27 +178,29 @@ void system_init()
         ODCONC = 0x00;    
 
 	// LCD Display setup
-    Lcd_Init();
+    LCDInitialize();
 }
 
 void main(void) 
 {
     system_init();
     
-    Lcd_Clear();
-    Lcd_Set_Cursor(1, 1);
-    Lcd_Write_String("Jump Start");
-    Lcd_Set_Cursor(2, 1);
-    Lcd_Write_Char('P');
+    LCDCleanScreen();
+    LCDSetCursor(1, 1);
+    LCDPrint("  Jump Start");
+    LCDSetCursor(2, 1);
+    LCDPrint(" Programming");
 
     while(1)  
 	{
-        //Lcd_Clear();
-        //Lcd_Set_Cursor(1, 1);
-        //Lcd_Write_String("LCD Library for");
-        //Lcd_Set_Cursor(2, 1);
-        //Lcd_Write_String("LCD Library for");
-         __delay_ms(2000);
+        //LCDCleanScreen();
+        //LCDSetCursor(1, 1);
+        //LCDPrint("  Jump Start");
+        //LCDSetCursor(2, 1);
+        //LCDPrint(" Programming");
+        //__delay_ms(2000);
+        
+        NOP();
     }   
 
     return;
