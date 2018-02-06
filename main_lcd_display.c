@@ -5,12 +5,37 @@
  * Created on January 9, 2018, 3:52 PM
  * 
  * Using LCD Display (1602A-1)
+ * we use it in 4-bit mode
+ * 
+ * Pin assignment for 1602A-1:
+    Pin Symbol	Level	I/O     Function
+    1	Vss     -       -       Power supply (GND)
+    2	Vcc     -       -       Power supply (+5V)
+    3	Vee     -       -       Contrast adjust
+    4	RS      0/1     I       0 = Instruction input
+                                1 = Data input
+    5	R/W     0/1     I       0 = Write to LCD module
+                                1 = Read from LCD module
+    6	E       1,1-->0	I       Enable signal
+    7	DB0     0/1     I/O     Data bus line 0 (LSB)
+    8	DB1     0/1     I/O     Data bus line 1
+    9	DB2     0/1     I/O     Data bus line 2
+    10	DB3     0/1     I/O     Data bus line 3
+    11	DB4     0/1     I/O     Data bus line 4
+    12	DB5     0/1     I/O     Data bus line 5
+    13	DB6     0/1     I/O     Data bus line 6
+    14	DB7     0/1     I/O     Data bus line 7 (MSB)
+    15	LED+    -       -       LED+
+    16	LED-	-       -       LED-
+
+
  * 
  *  Board connection (Microchip Curiosity Board 8-bit, PIC16F1619):
  *   PIN                	Module                         				  
  * -------------------------------------------                        
- *    RC2                   RS (register select)
- *    RC3                   E  (enable signal)
+ *    RC2                   RS (register select: 0 = instruction; 1 = character)
+ *    N/A                   R/W (read/write: 0 = write data to LCD; 1 = read data from LCD)
+ *    RC3                   E  (enable signal: 0 = access disabled; 1 = access enabled)
  *    RC4                   DB4
  *    RC5                   DB5
  *    RC6                   DB6
@@ -74,6 +99,28 @@ void LCDSetData(char x)
 	D7 = x & 8 ? 1 : 0;
 }
 
+/*
+    Code (Hex)  lcd command
+    1           Clear display screen
+    2           Return home
+    4           Decrement cursor (shift cursor to left)
+    6           Increment cursor (shift cursor to right)
+    5           Shift display right
+    7           Shift display left
+    8           Display off, cursor off
+    A           Display off, cursor on
+    C           Display on, cursor off
+    E           Display on, cursor blinking
+    F           Display on, cursor blinking
+    10          Shift cursor position to left
+    14          Shift cursor position to right
+    18          Shift the entire display to the left
+    1C          Shift the entire display to the right
+    80          Force cursor to beginning to 1st line
+    C0          Force cursor to beginning to 2nd line
+    28          2 lines and 5×7 matrix (4-bit mode)
+    38          2 lines and 5×7 matrix (8-bit mode)
+*/
 void LCDSendCommand(char cmd)
 {
 	LCDSetData(cmd);
@@ -102,12 +149,13 @@ void LCDInitialize()
 {
     LCDSetData(0x00);
     __delay_ms(20);
-    LCDSendCommand(0x02);
+    LCDSendCommand(0x03);//Send reset
     __delay_ms(5);
-    LCDSendCommand(0x02);//NOTE this is not copy/paste error, we have to do it three times
+    LCDSendCommand(0x03);//NOTE this is not copy/paste error, we have to do it three times
 	__delay_ms(11);
-    LCDSendCommand(0x02);//NOTE this is not copy/paste error, we have to do it three times
+    LCDSendCommand(0x03);//NOTE this is not copy/paste error, we have to do it three times
   
+    LCDSendCommand(0x02);//the data length is 4 bits
     LCDSendCommand(0x08);
     LCDSendCommand(0x00);
     LCDSendCommand(0x0C);
@@ -118,12 +166,12 @@ void LCDInitialize()
 LCDCleanScreen()
 {
 	LCDSendCommand(0x00);
-	LCDSendCommand(0x01);
+	LCDSendCommand(0x01);//Clear display screen
 }
 
 void LCDSetCursor(char row, char column)
 {
-    char offset = 1 == row ? 0x80 : 0xC0;
+    char offset = 1 == row ? 0x80 : 0xC0;//address of first character/first row - 0x80, address of first character/second row - 0xC0
     char temp = offset + column - 1;
 	LCDSendCommand(temp >> 4);
 	LCDSendCommand(temp & 0x0F);
@@ -177,13 +225,15 @@ void system_init()
         ODCONB = 0x00;
         ODCONC = 0x00;    
 
-	// LCD Display setup
-    LCDInitialize();
 }
 
 void main(void) 
 {
+    // PIC setup
     system_init();
+    
+	// LCD Display setup
+    LCDInitialize();
     
     LCDCleanScreen();
     LCDSetCursor(1, 1);
