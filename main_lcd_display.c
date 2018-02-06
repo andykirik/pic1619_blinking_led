@@ -93,7 +93,7 @@ begins with a single underscore.
 
 void LCDSetData(char x)
 {
-    D4 = x & 1 ? 1 : 0;
+	D4 = x & 1 ? 1 : 0;
 	D5 = x & 2 ? 1 : 0;
 	D6 = x & 4 ? 1 : 0;
 	D7 = x & 8 ? 1 : 0;
@@ -125,15 +125,15 @@ void LCDSendCommand(char cmd)
 {
 	LCDSetData(cmd);
 	RS = 0;              
-	EN = 1;             
+	EN  = 1;             
     __delay_ms(4);
-    EN = 0;             
+    EN  = 0;             
 }
 
 void LCDSendData(char n)
 {
-   char firstNibble = n & 0xF0;
-   char secondNibble = n & 0x0F;
+   uint8_t firstNibble = n & 0xF0;
+   uint8_t secondNibble = n & 0x0F;
    RS = 1;             
    LCDSetData(firstNibble >> 4); 
    EN = 1;
@@ -145,25 +145,7 @@ void LCDSendData(char n)
    EN = 0;
 }
 
-void LCDInitialize()
-{
-    LCDSetData(0x00);
-    __delay_ms(20);
-    LCDSendCommand(0x03);//Send reset
-    __delay_ms(5);
-    LCDSendCommand(0x03);//NOTE this is not copy/paste error, we have to do it three times
-	__delay_ms(11);
-    LCDSendCommand(0x03);//NOTE this is not copy/paste error, we have to do it three times
-  
-    LCDSendCommand(0x02);//the data length is 4 bits
-    LCDSendCommand(0x08);
-    LCDSendCommand(0x00);
-    LCDSendCommand(0x0C);
-    LCDSendCommand(0x00);
-    LCDSendCommand(0x06);
-}
-
-LCDCleanScreen()
+void LCDCleanScreen()
 {
 	LCDSendCommand(0x00);
 	LCDSendCommand(0x01);//Clear display screen
@@ -177,9 +159,28 @@ void LCDSetCursor(char row, char column)
 	LCDSendCommand(temp & 0x0F);
 }
 
+void LCDInitialize()
+{
+  LCDSetData(0x00);
+   __delay_ms(20);
+  LCDSendCommand(0x03);//send reset
+	__delay_ms(5);
+  LCDSendCommand(0x03);//NOTE this is not copy/paste error, we have to do it three times
+	__delay_ms(11);
+  LCDSendCommand(0x03);//NOTE this is not copy/paste error, we have to do it three times
+  
+  LCDSendCommand(0x02);
+  LCDSendCommand(0x02);
+  LCDSendCommand(0x08);
+  LCDSendCommand(0x00);
+  LCDSendCommand(0x0C);
+  LCDSendCommand(0x00);
+  LCDSendCommand(0x06);
+}
+
 void LCDPrint(char *pstr)
 {
-	for(; pstr; ++pstr)
+    for(; *pstr; ++pstr)
 	   LCDSendData(*pstr);
 }
 
@@ -232,25 +233,46 @@ void main(void)
     // PIC setup
     system_init();
     
-	// LCD Display setup
+    // LCD Display setup
     LCDInitialize();
     
-    LCDCleanScreen();
-    LCDSetCursor(1, 1);
-    LCDPrint("  Jump Start");
-    LCDSetCursor(2, 1);
-    LCDPrint(" Programming");
+    //LCDCleanScreen();
+    //LCDSetCursor(1, 1);
+    //LCDPrint("  Jump Start");
+    //LCDSetCursor(2, 1);
+    //LCDPrint(" Programming");
 
     while(1)  
 	{
-        //LCDCleanScreen();
-        //LCDSetCursor(1, 1);
-        //LCDPrint("  Jump Start");
-        //LCDSetCursor(2, 1);
-        //LCDPrint(" Programming");
-        //__delay_ms(2000);
-        
-        NOP();
+            LCDCleanScreen();
+            LCDSetCursor(1,1);
+            LCDPrint("Jump Start");
+            LCDSetCursor(2,1);
+            LCDPrint("Programming");
+            __delay_ms(2000);
+            
+            LCDCleanScreen();
+            LCDSetCursor(1,1);
+            LCDPrint("Developed By");
+            LCDSetCursor(2,1);
+            LCDPrint("Andrew Kirik");
+            __delay_ms(2000);
+            
+            LCDCleanScreen();
+            LCDSetCursor(1,1);
+            LCDPrint("https://www.jumpstartprogramming.com");
+
+            for(int i = 0; i < 20; ++i)
+            {
+                __delay_ms(500);
+                LCDShiftLeft();
+            }
+
+            for(int i = 0; i < 20; ++i)
+            {
+                __delay_ms(400);
+                LCDShiftRight();
+            }
     }   
 
     return;
