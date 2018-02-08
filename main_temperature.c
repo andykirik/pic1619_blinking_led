@@ -5,7 +5,7 @@
  * Created on January 9, 2018, 3:52 PM
  * 
  * Using LCD Display (1602A-1)
- * we use it in 4-bit mode
+ * and Temperature sensor (LM35DZ/NOPB)
  * 
  * Pin assignment for 1602A-1:
     Pin Symbol	Level	I/O     Function
@@ -39,6 +39,8 @@
  *    RC5                   DB5
  *    RC6                   DB6
  *    RC7                   DB7
+ * 
+ *    RA4/AN3               Temperature sensor
  */
 
 #define RS RC2
@@ -47,6 +49,10 @@
 #define D5 RC5
 #define D6 RC6
 #define D7 RC7
+
+#define TEMP                      0b00011
+#define ACQ_US_DELAY              5
+
 
 /* The __delay_ms() function is provided by XC8. 
 It requires you define _XTAL_FREQ as the frequency of your system clock. 
@@ -87,6 +93,7 @@ begins with a single underscore.
 #include <xc.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 void LCDSetData(char x)
 {
@@ -127,7 +134,7 @@ void LCDSendCommand(char cmd)
     EN  = 0;             
 }
 
-void LCDSendData(char n)
+void LCDSendData(uint16_t n)
 {
    uint8_t firstNibble = n & 0xF0;
    uint8_t secondNibble = n & 0x0F;
@@ -201,11 +208,13 @@ void system_init()
 			ANSELA = 0x00;
 			ANSELB = 0x00;
 			ANSELC = 0x00;
+            ANSELAbits.ANSA4 = 1;   // Set RA4/AN4 to analog mode
 
 		// TRISx registers (This register specifies the data direction of each pin)
 			TRISA 	= 0x00;     // Set All on PORTA as Output
 			TRISB 	= 0x00;     // Set All on PORTB as Output
 			TRISC 	= 0x00; 	// Set All on PORTC as Output
+            TRISAbits.TRISA4 = 1; // Set RA4/AN4 as Input
 
 		// LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
 			LATA = 0x00;        // Set PORTA all 0
@@ -222,7 +231,26 @@ void system_init()
         ODCONA = 0x00;
         ODCONB = 0x00;
         ODCONC = 0x00;    
+    
+    // ADC setup
+        ADCON0 = 0x00;          // GO_nDONE stop; ADON off; CHS AN0; 
+        ADCON1 = 0x00;          // ADFM left; ADPREF VDD; ADCS FOSC/2; 
+		ADCON2 = 0x00;          // TRIGSEL no_auto_trigger; 
+        ADRESL = 0x00;          // ADRESL 0; 
+        ADRESH = 0x00;          // ADRESH 0; 
+        ADCON1bits.ADFM = 1;    // right justified
+        ADCON0bits.CHS = TEMP;  // Select the A/D channel
+        //ADCON0bits.ADON = 1;    // Turn on the ADC module
+}
 
+uint16_t ADC_GetConversion()
+{    
+    ADCON0bits.ADON = 1;            // Turn on the ADC module
+    __delay_us(ACQ_US_DELAY);					// Acquisition time delay
+    ADCON0bits.GO_nDONE = 1;					// Start the conversion
+    while (ADCON0bits.GO_nDONE);				// Wait for the conversion to finish
+    ADCON0bits.ADON = 0;    // Turn off the ADC module
+    return ((uint16_t)((ADRESH << 8) + ADRESL));// Conversion finished, return the result
 }
 
 void main(void) 
@@ -233,43 +261,49 @@ void main(void)
     // LCD Display setup
     LCDInitialize();
     
-    //LCDCleanScreen();
-    //LCDSetCursor(1, 1);
-    //LCDPrint("  Jump Start");
-    //LCDSetCursor(2, 1);
-    //LCDPrint(" Programming");
+    LCDCleanScreen();
+    LCDSetCursor(1,1);
+    LCDPrint("Temperature");
+    LCDSetCursor(2,1);
+    LCDPrint("Sensor");
+    __delay_ms(2000);
+
+    LCDCleanScreen();
+    LCDSetCursor(1,1);
+    LCDPrint("Developed By");
+    LCDSetCursor(2,1);
+    LCDPrint("Andrew Kirik");
+    __delay_ms(2000);
+    
+    LCDCleanScreen();
+    LCDSetCursor(1,1);
+    LCDPrint("Temperature:");   
 
     while(1)  
-	{
-            LCDCleanScreen();
-            LCDSetCursor(1,1);
-            LCDPrint("Jump Start");
-            LCDSetCursor(2,1);
-            LCDPrint("Programming");
-            __delay_ms(2000);
+	{        
+        uint16_t adcResult = ADC_GetConversion();
+        
+        uint16_t celsius = (adcResult * 0.48876);   // based on voltage = ((adcResult) / 1023.0) * 5;
+        uint16_t fahrenheit = ((celsius * 18) / 10) + 32;	// Fahrenheit =  celsius × 1.8 + 32
+        
+        char buffer[6];
+        itoa(buffer,celsius,10);
             
-            LCDCleanScreen();
-            LCDSetCursor(1,1);
-            LCDPrint("Developed By");
-            LCDSetCursor(2,1);
-            LCDPrint("Andrew Kirik");
-            __delay_ms(2000);
+        LCDSetCursor(2,1);
+        LCDPrint(buffer);
+        
+        LCDSetCursor(2,4);
+        LCDPrint("C");
+        
+        itoa(buffer,fahrenheit,10);
             
-            LCDCleanScreen();
-            LCDSetCursor(1,1);
-            LCDPrint("https://www.jumpstartprogramming.com");
-
-            for(int i = 0; i < 20; ++i)
-            {
-                __delay_ms(500);
-                LCDShiftLeft();
-            }
-
-            for(int i = 0; i < 20; ++i)
-            {
-                __delay_ms(400);
-                LCDShiftRight();
-            }
+        LCDSetCursor(2,8);
+        LCDPrint(buffer);
+        
+        LCDSetCursor(2,12);
+        LCDPrint("F");
+        
+        __delay_ms(100);
     }   
 
     return;

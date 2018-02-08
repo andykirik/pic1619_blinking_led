@@ -14,7 +14,7 @@
  *    RA2 (D6)             LED
  *    RC5 (D7)             LED
  * 
- *    RC0 (POT1)           POTENCIOMETER
+ *    RC0/AN4 (POT1)           POTENCIOMETER
  *
  */
 
@@ -63,7 +63,7 @@ begins with a single underscore.
 #define LED_D6_LAT                LATAbits.LATA2
 #define LED_D7_LAT                LATCbits.LATC5
 
-#define POT1                      0x4
+#define POT1                      0b00100
 #define ACQ_US_DELAY              5
 
 // INIT
@@ -74,11 +74,13 @@ void system_init()
 			ANSELA = 0x00;
 			ANSELB = 0x00;
 			ANSELC = 0x00;
-			
+            ANSELCbits.ANSC0 = 1;   // Set RC0/AN4 to analog mode
+
 		// TRISx registers (This register specifies the data direction of each pin)
 			TRISA 	= 0x00;     // Set All on PORTA as Output
 			TRISB 	= 0x00;     // Set All on PORTB as Output
-			TRISC 	= 0x00;     // Set All on PORTC as Output
+			TRISC 	= 0x00; 	// Set All on PORTC as Output
+            TRISCbits.TRISC0 = 1; // Set RC0/AN4 as Input
 
 		// LATx registers (used instead of PORTx registers to write (read could be done on PORTx))
 			LATA = 0x00;        // Set PORTA all 0
@@ -177,11 +179,12 @@ void system_init()
                This must be cleared by software in the interrupt service routine 
                to prepare the interrupt flag for the next conversion.
     */
-		ADCON0 = 0x01;          // GO_nDONE stop; ADON enabled; CHS AN0; 
+		ADCON0 = 0x00;          // GO_nDONE stop; ADON off; CHS AN0; 
         ADCON1 = 0x00;          // ADFM left; ADPREF VDD; ADCS FOSC/2; 
 		ADCON2 = 0x00;          // TRIGSEL no_auto_trigger; 
         ADRESL = 0x00;          // ADRESL 0; 
         ADRESH = 0x00;          // ADRESH 0; 
+        ADCON1bits.ADFM = 1;    // right justified
         ADCON0bits.CHS = POT1;  // Select the A/D channel
         ADCON0bits.ADON = 1;    // Turn on the ADC module
 
@@ -189,9 +192,11 @@ void system_init()
 
 uint16_t ADC_GetConversion()
 {    
+    ADCON0bits.ADON = 1;    // Turn on the ADC module
     __delay_us(ACQ_US_DELAY);					// Acquisition time delay
     ADCON0bits.GO_nDONE = 1;					// Start the conversion
     while (ADCON0bits.GO_nDONE);				// Wait for the conversion to finish
+    ADCON0bits.ADON = 0;    // Turn off the ADC module
     return ((uint16_t)((ADRESH << 8) + ADRESL));// Conversion finished, return the result
 }
 
@@ -201,7 +206,7 @@ void main(void)
     
     while(1)  
 	{
-        uint8_t adcResult = ADC_GetConversion() >> 12; // Get the top 4 MSBs and display it on the LEDs
+        uint8_t adcResult = ADC_GetConversion() >> 6; // Get the top 4 MSBs and display it on the LEDs
 
         //Determine which LEDs will light up
         LED_D4_LAT = adcResult & 1;
